@@ -507,14 +507,16 @@ function renderDashboard(){
   const unpaid=members.length-paidThisMonth;
   const totalCollected=payments.reduce((a,p)=>a+p.amount,0);
 
-  const expectedTotal=members.length*MONTHLY*(curM+1);
-  const collectionPct=expectedTotal>0?Math.round(totalCollected/expectedTotal*100):0;
+  const fullFund=members.length*MONTHLY*9;
+  const remaining=fullFund-totalCollected;
+  const collectionPct=fullFund>0?Math.round(totalCollected/fullFund*100):0;
   document.getElementById('stats').innerHTML=`
     <div class="stat"><div class="lbl">Members</div><div class="val blue">${members.length}<span style="font-size:13px;color:var(--text2)">/${MAX_MEMBERS}</span></div></div>
     <div class="stat"><div class="lbl">Current Month</div><div class="val amber">${MONTHS[curM]}</div></div>
     <div class="stat"><div class="lbl">Paid This Month</div><div class="val green">&#8377;${(paidThisMonth*MONTHLY).toLocaleString('en-IN')}</div></div>
     <div class="stat"><div class="lbl">Total Collected</div><div class="val green">&#8377;${totalCollected.toLocaleString('en-IN')}</div></div>
-    <div class="stat"><div class="lbl">Expected Total</div><div class="val blue">&#8377;${expectedTotal.toLocaleString('en-IN')}</div></div>
+    <div class="stat"><div class="lbl">Total Fund Target</div><div class="val blue">&#8377;${fullFund.toLocaleString('en-IN')}</div></div>
+    <div class="stat"><div class="lbl">Remaining Balance</div><div class="val ${remaining>0?'red':'green'}">&#8377;${remaining.toLocaleString('en-IN')}</div></div>
     <div class="stat"><div class="lbl">Collection Rate</div><div class="val ${collectionPct>=80?'green':collectionPct>=50?'amber':'red'}">${collectionPct}%</div></div>
     <div class="stat"><div class="lbl">Unpaid This Month</div><div class="val ${unpaid>0?'red':'green'}">${unpaid}</div></div>
     <div class="stat"><div class="lbl">Full Fund (9 mo)</div><div class="val blue">&#8377;${(members.length*MONTHLY*9).toLocaleString('en-IN')}</div></div>
@@ -548,7 +550,7 @@ function renderDashboard(){
       <div style="font-weight:700;font-size:16px">${winW.memberName}</div></div>
       <div style="text-align:right"><div style="font-size:11px;color:var(--blue-dark);font-weight:600">Payout</div>
       <div style="font-weight:700;font-size:22px;color:var(--blue)">&#8377;${winW.pot.toLocaleString('en-IN')}</div></div>
-    </div>`:`<div style="font-size:13px;color:var(--text3);padding:4px 0">No winner assigned for ${MONTHS[curM]} yet.</div>`}
+    </div>`:""}
   `;
 
   // pending
