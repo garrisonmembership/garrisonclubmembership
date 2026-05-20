@@ -201,6 +201,7 @@ body.readonly .admin-only{display:none!important}
         <button class="admin-only" onclick="showPage('settings')">&#9881;&#65039; Settings</button>
         
       </div>
+      <button onclick="installPWA()" style="padding:5px 12px;background:linear-gradient(135deg,#8B6914,#D4A017);color:#fff;border:none;border-radius:100px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">&#128242; Install App</button>
       <div id="authBtn" class="viewer-badge" onclick="handleAuthClick()">&#128274; View Only</div>
     </div>
   </div>
@@ -1062,12 +1063,34 @@ window.addEventListener('appinstalled', () => {
 });
 
 function installPWA(){
-  if(!deferredPrompt){ 
-    alert('To install:\n\niOS: Tap Share → Add to Home Screen\n\nAndroid: Tap menu (⋮) → Add to Home Screen');
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; });
     return;
   }
-  deferredPrompt.prompt();
-  deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; });
+  // Show instructions modal
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const modal = document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML=`<div style="background:#1a0a00;border:1px solid #D4A017;border-radius:12px;padding:1.5rem;max-width:320px;width:100%;text-align:center">
+    <div style="font-size:36px;margin-bottom:10px">📱</div>
+    <div style="font-size:16px;font-weight:700;color:#FFD700;margin-bottom:10px">Install Garrison Club App</div>
+    ${isIOS ? 
+      `<div style="font-size:13px;color:#d4a96a;line-height:2">
+        <div>① Tap the <strong>Share</strong> button <span style="font-size:18px">⎋</span> at the bottom</div>
+        <div>② Scroll down and tap <strong>"Add to Home Screen"</strong></div>
+        <div>③ Tap <strong>"Add"</strong> — done!</div>
+      </div>` :
+      `<div style="font-size:13px;color:#d4a96a;line-height:2">
+        <div>① Tap the <strong>3 dots menu</strong> ⋮ at top right</div>
+        <div>② Tap <strong>"Add to Home Screen"</strong></div>
+        <div>③ Tap <strong>"Add"</strong> — done!</div>
+      </div>`
+    }
+    <button onclick="this.parentElement.parentElement.remove()" style="margin-top:1rem;padding:10px 24px;background:linear-gradient(135deg,#8B6914,#D4A017);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%">Got it!</button>
+  </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
 }
 window.installPWA=installPWA;
 // Call seed after short delay to ensure db is ready
