@@ -840,11 +840,11 @@ function renderMatrix(){
   h+=`<tr style="background:var(--bg2)"><td class="name-cell" style="font-weight:700;color:var(--text2)">TOTAL</td>`;
   MONTHS.forEach((_,i)=>{
     const cnt=payments.filter(p=>p.monthIdx===i).length;
-    if(i>S.currentMonth){h+=`<td style="text-align:center;color:var(--text3)">—</td>`;}
-    else{
-      const color=cnt===members.length?'var(--green)':cnt===0?'var(--red)':'var(--amber)';
-      h+=`<td style="text-align:center;font-weight:700;color:${color};font-size:12px">${cnt}/${members.length}</td>`;
-    }
+    const isFuture=i>S.currentMonth;
+    const color=cnt===members.length?'var(--green)':cnt===0?'var(--red)':'var(--amber)';
+    const display=cnt>0?`${cnt}/${members.length}`:(isFuture?'—':'0/'+members.length);
+    const opacity=isFuture&&cnt===0?'opacity:0.4;':'';
+    h+=`<td style="text-align:center;font-weight:700;color:${color};font-size:12px;${opacity}">${display}</td>`;
   });
   const grand=payments.reduce((a,p)=>a+p.amount,0);
   h+=`<td style="text-align:center;font-weight:700;color:var(--green)">&#8377;${grand.toLocaleString('en-IN')}</td></tr>`;
@@ -856,10 +856,10 @@ function renderMatrix(){
 function togglePayment(mId, payKey, monthIdx, isPaid){
   if(!isAdmin||!db)return;
   if(isPaid){
-    const m=Object.values(S.members).find(x=>x.id===mId);
-    if(!confirm('Remove '+MONTHS[monthIdx]+' payment for '+( m?m.name:'this member')+'?'))return;
+    // Undo payment - no confirm, instant
     if(payKey) remove(ref(db,'garrison/payments/'+payKey));
   } else {
+    // Mark as paid
     const existing=Object.values(S.payments).find(p=>p.memberId===mId&&p.monthIdx===monthIdx);
     if(existing)return;
     const newRef=push(ref(db,'garrison/payments'));
