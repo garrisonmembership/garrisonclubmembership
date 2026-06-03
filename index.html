@@ -813,22 +813,18 @@ function renderMatrix(){
       const payRec=Object.entries(S.payments).find(([k,p])=>p.memberId===m.id&&p.monthIdx===i);
       const paid=!!payRec;
       const payKey=payRec?payRec[0]:'';
-      if(i>S.currentMonth){
-        h+=`<td style="text-align:center;color:var(--text3)">—</td>`;
-      } else if(paid){
+      const isFuture=i>S.currentMonth;
+      if(paid){
         if(isAdmin){
-          h+=`<td style="text-align:center"><span class="cell-paid" style="cursor:pointer;padding:3px 8px;border-radius:4px;display:inline-block" title="Click to undo" onclick="togglePayment('${m.id}','${payKey}',${i},true)">✓</span></td>`;
+          h+=`<td style="text-align:center;padding:2px"><span style="cursor:pointer;background:rgba(200,169,81,0.25);color:#FFD700;padding:4px 10px;border-radius:4px;display:inline-block;font-size:15px;font-weight:700;border:1px solid rgba(200,169,81,0.4)" onclick="togglePayment('${m.id}','${payKey}',${i},true)" title="Click to undo">&#10003;</span></td>`;
         } else {
-          h+=`<td style="text-align:center"><span class="cell-paid" style="padding:3px 8px;border-radius:4px;display:inline-block">✓</span></td>`;
+          h+=`<td style="text-align:center;padding:2px"><span style="background:rgba(200,169,81,0.25);color:#FFD700;padding:4px 10px;border-radius:4px;display:inline-block;font-size:15px;font-weight:700">&#10003;</span></td>`;
         }
       } else {
         if(isAdmin){
-          const ph=m.phone?m.phone.replace(/\D/g,''):'';
-          const msg=encodeURIComponent('Hi '+m.name+', please pay \u20b9500 for Garrison Club Membership — '+MONTHS[i]+' 2026. Pay here: upi://pay?pa=melbumelvin@okaxis&am=500');
-          const wa=ph?` <a href="https://wa.me/${ph}?text=${msg}" target="_blank" style="color:#25D366;font-size:10px;text-decoration:none" title="Send WhatsApp reminder">&#128241;</a>`:'';
-          h+=`<td style="text-align:center"><span class="cell-unpaid" style="cursor:pointer;padding:3px 8px;border-radius:4px;display:inline-block" title="Click to mark paid" onclick="togglePayment('${m.id}','',${i},false)">✗</span>${wa}</td>`;
+          h+=`<td style="text-align:center;padding:2px"><span style="cursor:pointer;background:rgba(226,75,74,0.2);color:#ff6b6b;padding:4px 10px;border-radius:4px;display:inline-block;font-size:15px;font-weight:700;border:1px solid rgba(226,75,74,0.3);${isFuture?'opacity:0.5':''}" onclick="togglePayment('${m.id}','',${i},false)" title="${isFuture?'Pre-mark as paid':'Mark as paid'}">&#10007;</span></td>`;
         } else {
-          h+=`<td style="text-align:center"><span class="cell-unpaid" style="padding:3px 8px;border-radius:4px;display:inline-block">✗</span></td>`;
+          h+=`<td style="text-align:center;padding:2px"><span style="background:rgba(226,75,74,0.15);color:#ff6b6b;padding:4px 10px;border-radius:4px;display:inline-block;font-size:15px;font-weight:700;${isFuture?'opacity:0.4':''}">&#10007;</span></td>`;
         }
       }
     });
