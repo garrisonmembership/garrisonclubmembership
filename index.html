@@ -148,10 +148,11 @@ body.readonly .admin-only{display:none!important}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* month grid */
 .month-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:6px}
-.month-cell{padding:8px 4px;text-align:center;border-radius:var(--radius);border:0.5px solid var(--border);font-size:11px;font-weight:600;cursor:default}
+.month-cell{padding:8px 4px;text-align:center;border-radius:var(--radius);border:0.5px solid var(--border);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s}
 .month-cell.done{background:var(--green-bg);color:var(--green-dark);border-color:rgba(29,158,117,0.3)}
 .month-cell.current{background:var(--blue);color:#fff;border-color:var(--blue)}
 .month-cell.future{color:var(--text3);background:var(--bg2)}
+.month-cell.selected{outline:2px solid var(--gold);outline-offset:2px}
 @media(max-width:500px){.month-grid{grid-template-columns:repeat(3,1fr)}}
 /* payment matrix */
 .matrix-wrap{overflow-x:auto}
@@ -595,13 +596,23 @@ function deletePayment(id){
 window.deletePayment=deletePayment;
 
 function quickPay(mId){
+  quickPayMonth(mId, selectedViewMonth!==null?selectedViewMonth:S.currentMonth);
+}
+function quickPayMonth(mId,monthIdx){
   if(!isAdmin||!db)return;
-  const existing=Object.values(S.payments).find(p=>p.memberId===mId&&p.monthIdx===S.currentMonth);
+  const existing=Object.values(S.payments).find(p=>p.memberId===mId&&p.monthIdx===monthIdx);
   if(existing){alert('Already marked as paid!');return;}
   const newRef=push(ref(db,'garrison/payments'));
-  set(newRef,{id:newRef.key,memberId:mId,monthIdx:S.currentMonth,amount:MONTHLY,date:new Date().toLocaleDateString('en-IN')});
+  set(newRef,{id:newRef.key,memberId:mId,monthIdx,amount:MONTHLY,date:new Date().toLocaleDateString('en-IN')});
 }
 window.quickPay=quickPay;
+window.quickPayMonth=quickPayMonth;
+
+function viewMonth(idx){
+  selectedViewMonth = (selectedViewMonth===idx) ? null : idx; // toggle off if same
+  renderDashboard();
+}
+window.viewMonth=viewMonth;
 
 function remindAllUnpaid(){
   if(!isAdmin)return;
@@ -688,20 +699,23 @@ function renderDashboard(){
   MONTHS.forEach((mn,i)=>{
     const w=winners.find(x=>x.monthIdx===i);
     const cls=i===curM?'current':i<curM?'done':'future';
-    wg.innerHTML+=`<div class="month-cell ${cls}" title="${mn}${w?' — '+w.memberName:''}">${mn.slice(0,3)}</div>`;
+    wg.innerHTML+=`<div class="month-cell ${cls}${selectedViewMonth===i?' selected':''}" title="Click to view ${mn}" onclick="viewMonth(${i})">${mn.slice(0,3)}</div>`;
   });
 
   // labels
-  ['curMonthLabel','wkInput2','pendingMonthLabel'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=MONTHS[curM];});
+  const viewM = selectedViewMonth !== null ? selectedViewMonth : curM;
+  ['curMonthLabel','wkInput2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=MONTHS[curM];});
+  const pml=document.getElementById('pendingMonthLabel');if(pml)pml.textContent=MONTHS[viewM];
 
   // month summary
-  const winW=winners.find(w=>w.monthIdx===curM);
-  const pct=members.length>0?Math.round(paidThisMonth/members.length*100):0;
+  const winW=winners.find(w=>w.monthIdx===viewM);
+  const paidViewMonth=payments.filter(p=>p.monthIdx===viewM).length;
+  const pct=members.length>0?Math.round(paidViewMonth/members.length*100):0;
   document.getElementById('monthSummary').innerHTML=`
     <div style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
         <span style="color:var(--text2)">Payments collected</span>
-        <span style="font-weight:600">${paidThisMonth} / ${members.length} (${pct}%)</span>
+        <span style="font-weight:600">${paidViewMonth} / ${members.length} (${pct}%)</span>
       </div>
       <div class="progress-bar"><div class="progress-fill${pct===100?' green':pct<50?' red':''}" style="width:${pct}%"></div></div>
     </div>
@@ -714,7 +728,7 @@ function renderDashboard(){
   `;
 
   // pending
-  const pending=members.filter(m=>!payments.find(p=>p.memberId===m.id&&p.monthIdx===curM));
+  const pending=members.filter(m=>!payments.find(p=>p.memberId===m.id&&p.monthIdx===viewM));
   const pl=document.getElementById('pendingList');
   if(!members.length){pl.innerHTML='<div class="empty">Add members first from the Members tab.</div>';return;}
   if(!pending.length){pl.innerHTML=`<div class="empty" style="color:var(--green)">&#10003; All members have paid for ${MONTHS[curM]}!</div>`;return;}
@@ -723,7 +737,7 @@ function renderDashboard(){
     const ph=m.phone?m.phone.replace(/\D/g,''):'';
     const msg=encodeURIComponent('Hi '+m.name+', this is a reminder from Garrison Club to pay your monthly contribution of \u20b9'+MONTHLY+' for '+MONTHS[curM]+' 2026. Deadline: 1st of the month. Thank you!');
     const wa=ph?`<a class="wa-btn" href="https://wa.me/${ph}?text=${msg}" target="_blank"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Remind</a>`:'';
-    const markBtn=isAdmin?`<button class="btn sm primary" onclick="quickPay('${m.id}')">&#10003; Mark Paid</button>`:'';
+    const markBtn=isAdmin?`<button class="btn sm primary" onclick="quickPayMonth('${m.id}',${viewM})">&#10003; Mark Paid</button>`:'';
     h+=`<tr><td>${m.num}</td><td style="font-weight:500">${m.name}</td><td>${m.phone||'—'}</td><td style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${markBtn}${wa}</td></tr>`;
   });
   h+='</tbody></table></div>';
